@@ -1,0 +1,4 @@
+mkdir -p packed
+pushd src
+zip -r $OLDPWD/packed/cloudar-acm-plus-custom-resource.zip *
+popd

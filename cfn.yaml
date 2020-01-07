@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+    This template deploys a custom resource and acm certificate.
+Parameters:
+    HostedZoneId:
+        Description: The hostedzone id for the env domain
+        Type: String
+    DomainName:
+        Description: the domainname for the env
+        Type: String
+    ArtifactBucket:
+        Description: the artifact bucket
+        Type: String
+
+Resources:
+
+  CreateCertificatesFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ["/", ["/aws/lambda", !Ref CreateCertificatesFunction]]
+      RetentionInDays: 7
+
+  CreateCertificatesFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Timeout: 800
+      Role: !GetAtt CreateCertificatesFunctionExecutionRole.Arn
+      Runtime: python3.7
+      Code:
+        S3Bucket: !Sub ${ArtifactBucket}
+        S3Key: "cloudar-acm-plus-custom-resource.zip"
+
+  CreateCertificatesFunctionExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [lambda.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCertificateManagerFullAccess
+        - arn:aws:iam::aws:policy/AmazonRoute53FullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess
+
+  CreateCertificateCustomResource:
+    Type: Custom::CreateCertificates
+    Properties:
+      ServiceToken: !GetAtt CreateCertificatesFunction.Arn
+      DomainName: !Sub ${DomainName}
+      AdditionalDomains:
+        - !Sub www.${DomainName}
+      ValidationDomain: !Sub ${DomainName}
+      HostedZoneId: !Sub ${HostedZoneId}
+      CertificateRegion: !Sub "${AWS::Region}"
+      IdempotencyToken: CreateCertificateCustomResource
+      CertificateTags:
+        - Key: Name
+          Value: !Sub ${DomainName}
+
+Outputs:
+  CreateCertificateCustomResource:
+    Description: The arn of the certificate created by CreateCertificateCustomResource
+    Value: !GetAtt CreateCertificateCustomResource.certificate_arn
