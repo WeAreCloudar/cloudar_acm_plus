@@ -190,8 +190,6 @@ def validate_acm_certificate(event, context, certificate_arn, certificate_region
                         no_records = False
                         for validations in validation_options:
                             record = validations['ResourceRecord']
-                            logger.info('records887')
-                            logger.info(response)
                             modify_dns_record(event, context, 'CREATE', hosted_zone_id, record['Name'], record['Value'], certificate_region)
 
         logger.info("Creating validation records complete.")
