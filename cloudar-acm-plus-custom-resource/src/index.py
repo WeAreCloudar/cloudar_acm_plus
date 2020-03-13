@@ -56,31 +56,56 @@ def deleting_records(event, context, certificate_region, certificate_arn, hosted
     except Exception as e:
         send_cfnresponse(event, context, "FAILED", {'error': str(e)})
 
+def dns_record_exists(event, context, hosted_zone_id, record_name, record_value, certificate_region):
+    try:
+        exists = False
+        start_record_name = record_name.split('.')[0]
+
+        r53_client = boto3.client('route53', region_name=certificate_region)
+        response = r53_client.list_resource_record_sets(
+            HostedZoneId=hosted_zone_id,
+            StartRecordName=start_record_name,
+            StartRecordType='CNAME'
+        )
+
+        for record in response['ResourceRecordSets']:
+            if record_name == record['Name']:
+                exists = True
+                return exists
+        return exists
+
+    except Exception as e:
+        send_cfnresponse(event, context, "FAILED", {'error': str(e)})
+
 def modify_dns_record(event, context, action, hosted_zone_id, record_name, record_value, certificate_region):
     try:
-        r53_client = boto3.client('route53', region_name=certificate_region)
-        response = r53_client.change_resource_record_sets(
-            HostedZoneId=hosted_zone_id,
-            ChangeBatch={
-                'Changes': [
-                    {
-                        'Action': action,
-                        'ResourceRecordSet': {
-                            'Name': record_name,
-                            'SetIdentifier': record_name,
-                            'TTL': 60,
-                            'Type': 'CNAME',
-                            'Region': certificate_region,
-                            'ResourceRecords': [
-                                {
-                                    'Value': record_value
-                                },
-                            ]
+        record_exists = dns_record_exists(event, context, hosted_zone_id, record_name, record_value, certificate_region)
+        if not record_exists:
+            r53_client = boto3.client('route53', region_name=certificate_region)
+            response = r53_client.change_resource_record_sets(
+                HostedZoneId=hosted_zone_id,
+                ChangeBatch={
+                    'Changes': [
+                        {
+                            'Action': action,
+                            'ResourceRecordSet': {
+                                'Name': record_name,
+                                'SetIdentifier': record_name,
+                                'TTL': 60,
+                                'Type': 'CNAME',
+                                'Region': certificate_region,
+                                'ResourceRecords': [
+                                    {
+                                        'Value': record_value
+                                    },
+                                ]
+                            }
                         }
-                    }
-                ]
-            }
-        )
+                    ]
+                }
+            )
+        else:
+            logger.info("Record exists, skipping create.")
     except Exception as e:
         send_cfnresponse(event, context, "FAILED", {'error': str(e)})
 
@@ -165,6 +190,8 @@ def validate_acm_certificate(event, context, certificate_arn, certificate_region
                         no_records = False
                         for validations in validation_options:
                             record = validations['ResourceRecord']
+                            logger.info('records887')
+                            logger.info(response)
                             modify_dns_record(event, context, 'CREATE', hosted_zone_id, record['Name'], record['Value'], certificate_region)
 
         logger.info("Creating validation records complete.")
