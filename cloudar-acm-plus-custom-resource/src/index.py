@@ -80,7 +80,7 @@ def dns_record_exists(event, context, hosted_zone_id, record_name, record_value,
 def modify_dns_record(event, context, action, hosted_zone_id, record_name, record_value, certificate_region):
     try:
         record_exists = dns_record_exists(event, context, hosted_zone_id, record_name, record_value, certificate_region)
-        if not record_exists:
+        if not record_exists or action == "DELETE":
             r53_client = boto3.client('route53', region_name=certificate_region)
             response = r53_client.change_resource_record_sets(
                 HostedZoneId=hosted_zone_id,
