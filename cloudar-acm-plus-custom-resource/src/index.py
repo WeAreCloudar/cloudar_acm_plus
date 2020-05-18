@@ -58,21 +58,19 @@ def deleting_records(event, context, certificate_region, certificate_arn, hosted
 
 def dns_record_exists(event, context, hosted_zone_id, record_name, record_value, certificate_region):
     try:
-        exists = False
+        logger.info("Checking if record already exists: Hosted Zone = %s, Record Name = %s, Record Value = %s.", hosted_zone_id, record_name, record_value)
         start_record_name = record_name.split('.')[0]
 
         r53_client = boto3.client('route53', region_name=certificate_region)
-        response = r53_client.list_resource_record_sets(
-            HostedZoneId=hosted_zone_id,
-            StartRecordName=start_record_name,
-            StartRecordType='CNAME'
-        )
+        iterator = r53_client.get_paginator('list_resource_record_sets').paginate(HostedZoneId=hosted_zone_id)
+        for page in iterator:
+            for record in page.get('ResourceRecordSets'):
+                if record_name == record['Name']:
+                    logger.info("Record exists")
+                    return True
 
-        for record in response['ResourceRecordSets']:
-            if record_name == record['Name']:
-                exists = True
-                return exists
-        return exists
+        logger.info("Record does not exist")
+        return False
 
     except Exception as e:
         send_cfnresponse(event, context, "FAILED", {'error': str(e)})
