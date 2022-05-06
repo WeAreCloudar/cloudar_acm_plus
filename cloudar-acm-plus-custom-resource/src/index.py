@@ -34,7 +34,10 @@ class acm_certificate:
         self.certificate_arn = certificate_arn
 
     def get_certificate_arn(self):
-        return self.certificate_arn
+        if self.certificate_arn:
+            return self.certificate_arn
+        else:
+            return ""
 
     def get_certificate_region(self):
         return self.certificate_region
@@ -143,6 +146,7 @@ def handler(event, context):
         acm = acm_certificate(event)
         if event['RequestType'] == "Create":
             acm.load_dns_handler(event)
+            acm.create_certificate()
             acm.add_tags()
             acm.validate_certificate()
             acm.wait_for_cert_to_validate()

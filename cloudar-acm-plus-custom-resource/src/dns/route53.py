@@ -11,6 +11,7 @@ class Route53:
     def __init__(self):
         self.certificate_region = None
         self.client = None
+        logger.info(self.__class__.__name__ + " initialized")
 
     def handle_event(self,event):
         self.certificate_region = get_resource_property(event, 'CertificateRegion')
@@ -48,9 +49,9 @@ class Route53:
                             'ResourceRecordSet': {
                                 'Name': record_name,
                                 'SetIdentifier': record_name,
+                                'Region': self.certificate_region,
                                 'TTL': 60,
                                 'Type': 'CNAME',
-                                'Region': self.certificate_region,
                                 'ResourceRecords': [
                                     {
                                         'Value': record_value

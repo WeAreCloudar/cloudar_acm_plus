@@ -12,6 +12,8 @@ Parameters:
   ArtifactBucket:
     Description: the artifact bucket
     Type: String
+    
+
   DnsService:
     Description: "Route53, MenAndMice"
     Type: String
@@ -60,8 +62,6 @@ Resources:
       ServiceToken: !GetAtt CreateCertificatesFunction.Arn
       DnsService: !Ref DnsService
       DomainName: !Ref DomainName
-      AdditionalDomains:
-        - !Sub www.${DomainName}
       ValidationDomain: !Ref DomainName
       HostedZoneId: !Ref HostedZoneId
       CertificateRegion: !Ref AWS::Region

@@ -1,1 +1,2 @@
-pip3 install -r requirements.txt -t src
+scriptdir=$(dirname $0)
+pip3 install -r ${scriptdir}/requirements.txt -t src
