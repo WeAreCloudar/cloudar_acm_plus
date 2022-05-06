@@ -150,17 +150,21 @@ def handler(event, context):
             acm.add_tags()
             acm.validate_certificate()
             acm.wait_for_cert_to_validate()
-            send_cfnresponse(event, context, "SUCCESS", {'response': 'validated', 'certificate_arn': acm.get_certificate_arn()})
+            certificate_arn = acm.get_certificate_arn()
+            send_cfnresponse(event, context, "SUCCESS", {
+                             'response': 'validated', 'certificate_arn': certificate_arn}, certificate_arn)
         elif event['RequestType'] == "Delete":
             acm.load_dns_handler(event)
             certificate_arn = get_certificate_arn_from_cfn_stack(event, context, acm.get_certificate_region())
             acm.set_certificate_arn(certificate_arn)
             acm.delete_records()
             acm.delete_certificate()
-            send_cfnresponse(event, context, "SUCCESS", {'response': 'deleted', 'certificate_arn': certificate_arn})
+            send_cfnresponse(event, context, "SUCCESS", {
+                             'response': 'deleted', 'certificate_arn': certificate_arn}, certificate_arn)
         else:
             certificate_arn = get_certificate_arn_from_cfn_stack(event, context, acm.get_certificate_region())
-            send_cfnresponse(event, context, "SUCCESS", {'response': 'skipped_because_update', 'certificate_arn': certificate_arn})
+            send_cfnresponse(event, context, "SUCCESS", {
+                             'response': 'skipped_because_update', 'certificate_arn': certificate_arn}, certificate_arn)
 
     except Exception as e:
         send_cfnresponse(event, context, "FAILED", {'error': str(e)})
@@ -173,14 +177,17 @@ def get_certificate_arn_from_cfn_stack(event, context, certificate_region):
 
         client = boto3.client('cloudformation', region_name=certificate_region)
         response = client.describe_stacks(
-            StackName=stack_id
+            StackName=stack_id,
+            LogicalResourceId=resource_id
         )
 
-        for stack in response['Stacks']:
-            outputs = stack['Outputs']
-            for output in outputs:
-                if output['OutputKey'] == resource_id:
-                    certificate_arn = output['OutputValue']
+        # for stack in response['Stacks']:
+        #     outputs = stack['Outputs']
+        #     for output in outputs:
+        #         if output['OutputKey'] == resource_id:
+        #             certificate_arn = output['OutputValue']
+        resource = response['StackResources'][0]
+        certificate_arn = resource['PhysicalResourceId']
 
         return certificate_arn
     except Exception as e:
@@ -189,9 +196,12 @@ def get_certificate_arn_from_cfn_stack(event, context, certificate_region):
 def instantiate_class(classname):
     return getattr(sys.modules[__name__], classname)()
     
-def send_cfnresponse(event, context, status, data):
+
+def send_cfnresponse(event, context, status, data, physicalResourceId = None):
     if status == "SUCCESS":
-        cfnresponse.send(event, context, cfnresponse.SUCCESS, data)
+        cfnresponse.send(event, context, cfnresponse.SUCCESS,
+                         data, physicalResourceId)
     else:
         logger.error(str(data))
-        cfnresponse.send(event, context, cfnresponse.FAILED, data)
+        cfnresponse.send(event, context, cfnresponse.FAILED,
+                         data, physicalResourceId)
