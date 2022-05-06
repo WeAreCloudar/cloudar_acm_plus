@@ -176,7 +176,7 @@ def get_certificate_arn_from_cfn_stack(event, context, certificate_region):
         certificate_arn = ""
 
         client = boto3.client('cloudformation', region_name=certificate_region)
-        response = client.describe_stacks(
+        response = client.describe_stack_resources(
             StackName=stack_id,
             LogicalResourceId=resource_id
         )
