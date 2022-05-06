@@ -2,15 +2,22 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: >
     This template deploys a custom resource and acm certificate.
 Parameters:
-    HostedZoneId:
-        Description: The hostedzone id for the env domain
-        Type: String
-    DomainName:
-        Description: the domainname for the env
-        Type: String
-    ArtifactBucket:
-        Description: the artifact bucket
-        Type: String
+  HostedZoneId:
+    Description: The hostedzone id for the env domain
+    Type: String
+    Default: ""
+  DomainName:
+    Description: the domainname for the env
+    Type: String
+  ArtifactBucket:
+    Description: the artifact bucket
+    Type: String
+  DnsService:
+    Description: "Route53, MenAndMice"
+    Type: String
+    AllowedValues:
+      - Route53
+      - MenAndMice
 
 Resources:
 
@@ -51,16 +58,17 @@ Resources:
     Type: Custom::CreateCertificates
     Properties:
       ServiceToken: !GetAtt CreateCertificatesFunction.Arn
-      DomainName: !Sub ${DomainName}
+      DnsService: !Ref DnsService
+      DomainName: !Ref DomainName
       AdditionalDomains:
         - !Sub www.${DomainName}
-      ValidationDomain: !Sub ${DomainName}
-      HostedZoneId: !Sub ${HostedZoneId}
-      CertificateRegion: !Sub "${AWS::Region}"
+      ValidationDomain: !Ref DomainName
+      HostedZoneId: !Ref HostedZoneId
+      CertificateRegion: !Ref AWS::Region
       IdempotencyToken: CreateCertificateCustomResource
       CertificateTags:
         - Key: Name
-          Value: !Sub ${DomainName}
+          Value: !Ref DomainName
 
 Outputs:
   CreateCertificateCustomResource:
