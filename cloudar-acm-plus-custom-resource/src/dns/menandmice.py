@@ -13,6 +13,7 @@ class MenAndMice:
         self.client = None
         self.credential_store = 'ssm' #For now only ssm is used to retrieve credentials
         self.credentials = None
+        self.headers = {'content-type': 'application/json'}
         logger.info(self.__class__.__name__ + " initialized")
         
     def get_credentials(self):
@@ -65,6 +66,10 @@ class MenAndMice:
 
         start_record_name = record_name.split('.')[0]
         #TODO: Implement M&M API
+        mmsession = requests.Session()
+        Params = {'filter': 'type=CNAME,name='+ record_name }
+        response = mmsession.get(self.apiurl + '/DNSZones/' + self.hosted_zone_name +
+                                 '/DNSRecords;', headers=self.headers, auth=self.credentials)
 
         logger.info("Record does not exist")
         return False
