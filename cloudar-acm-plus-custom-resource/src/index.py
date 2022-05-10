@@ -181,11 +181,6 @@ def get_certificate_arn_from_cfn_stack(event, context, certificate_region):
             LogicalResourceId=resource_id
         )
 
-        # for stack in response['Stacks']:
-        #     outputs = stack['Outputs']
-        #     for output in outputs:
-        #         if output['OutputKey'] == resource_id:
-        #             certificate_arn = output['OutputValue']
         resource = response['StackResources'][0]
         certificate_arn = resource['PhysicalResourceId']
 
