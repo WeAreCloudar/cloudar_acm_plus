@@ -1,6 +1,7 @@
 import boto3
 import logging
 import time
+import requests
 from helper import get_resource_property
 
 logger = logging.getLogger()
@@ -10,15 +11,57 @@ class MenAndMice:
 
     def __init__(self):
         self.client = None
+        self.credential_store = 'ssm' #For now only ssm is used to retrieve credentials
+        self.credentials = None
+        logger.info(self.__class__.__name__ + " initialized")
+        
+    def get_credentials(self):
+        handle_credentials = getattr(self, 'get_credentials_from_' + self.credential_store, None)
+        if callable(handle_credentials):
+            self.handle_credentials()
+        
+    def get_credentials_from_ssm(self):
+        password = None
+        username = None
+        client = boto3.client('ssm')
+        response = client.get_parameters_by_path(
+            Path=self.credential_store_location,
+            Recursive = False,
+            WithDecryption=True
+        )
+        for parameter in response['Parameters']:
+            if parameter['Name'] == 'username':
+                username = parameter['Value']
+            elif parameter['Name'] == 'password':
+                password = parameter['Value']
+            
+        self.credentials=(username, password)
+        
+        
 
-    #def handle_event(self,event):
-    #  #TODO: Implement M&M API
+    def handle_event(self,event):
+        self.credential_store_location = get_resource_property(
+            event, 'DnsApiCredentialLocation')
+        if not self.credential_store_location:
+            raise AttributeError(self.__class__.__name__ +
+                                 " Requires DnsApiCredentialLocation Parameter")
+        self.apiurl = get_resource_property(
+            event, 'DnsApiUrl')
+        if not self.apiurl:
+            raise AttributeError(self.__class__.__name__ +
+                                 " Requires DnsApiUrl Parameter")
+        self.hosted_zone_name = get_resource_property(event, 'HostedZoneName')
+        if not self.hosted_zone_name:
+            raise AttributeError(self.__class__.__name__ +
+                                 " Requires HostedZoneName Parameter")
+                                 
+        self.get_credentials()
 
 
     def dns_record_exists(self,record_name,record_value):
         logger.info(
-            "Checking if record already exists: Hosted Zone = %s, Record Name = %s, Record Value = %s.",
-            self.hosted_zone_id, record_name, record_value)
+            "Checking if record already exists: Record Name = %s, Record Value = %s.",
+            record_name, record_value)
 
         start_record_name = record_name.split('.')[0]
         #TODO: Implement M&M API
