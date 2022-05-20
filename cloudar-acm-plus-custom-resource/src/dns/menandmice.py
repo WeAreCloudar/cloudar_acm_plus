@@ -69,7 +69,7 @@ class MenAndMice:
         mmsession = requests.Session()
         Params = {'filter': 'type=CNAME,name='+ record_name }
         response = mmsession.get(self.apiurl + '/DNSZones/' + self.hosted_zone_name +
-                                 '/DNSRecords;', headers=self.headers, auth=self.credentials)
+                                 '/DNSRecords', headers=self.headers, auth=self.credentials)
 
         logger.info("Record does not exist")
         return False
