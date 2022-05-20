@@ -6,6 +6,7 @@ import sys
 from helper import get_resource_property
 from dns.route53 import Route53
 from dns.menandmice import MenAndMice
+import re
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -43,6 +44,8 @@ class acm_certificate:
         return self.certificate_region
 
     def create_certificate(self):
+        # Sanity Check
+        self.validate_rfc2181(self.domain_name)
         if self.additional_domains is None:
             response = self.client.request_certificate(
                 DomainName=self.domain_name,
@@ -58,6 +61,10 @@ class acm_certificate:
                     'CertificateTransparencyLoggingPreference': 'ENABLED'
                 })
         else:
+            # Sanity Checks for additional domains
+            for san in self.additional_domains:
+                self.validate_rfc2181(san)
+                
             response = self.client.request_certificate(
                 DomainName=self.domain_name,
                 ValidationMethod='DNS',
@@ -87,6 +94,22 @@ class acm_certificate:
                 Tags=self.certificate_tags)
             logger.info("Added tags to certificate " + self.certificate_arn)
 
+    def validate_rfc1035(self,fqdn):
+        logger.info('RFC1035 Sanity Check of ' + fqdn)
+        rfc1035_pattern = r"(?=^.{4,253}\.?$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}\.?$)"
+        result = re.match(rfc1035_pattern,fqdn)
+        if not result:
+            raise ValueError('RFC1035 Sanity Check fails: ' + fqdn + ' is not a valid FQDN')
+        return True
+
+    def validate_rfc2181(self, fqdn):
+        logger.info('RFC2181 Sanity Check of ' + fqdn)
+        rfc2181_pattern = r"(?=^.{4,253}\.?$)(^((?!-)[^\.]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}\.?$)"
+        result = re.match(rfc2181_pattern, fqdn)
+        if not result:
+            raise ValueError('RFC2181 Sanity Check fails: ' +
+                             fqdn + ' is not a valid FQDN')
+        return True
     def validate_certificate(self):
         number_of_additional_domains = 0
         if self.additional_domains is not None:
@@ -110,6 +133,7 @@ class acm_certificate:
                         no_records = False
                         for validations in validation_options:
                             record = validations['ResourceRecord']
+                            self.validate_rfc2181(record['Name'])
                             self.dns_service.modify_dns_record('CREATE',record['Name'], record['Value'])
 
         logger.info("Creating validation records complete.")
