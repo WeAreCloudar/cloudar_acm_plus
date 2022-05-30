@@ -61,7 +61,7 @@ class MenAndMice:
         
     def select_zone(self):
         zones = []
-        zoneparams={'filter': 'name=' + self.hosted_zone_name}
+        zoneparams={'filter': 'name=' + self.hosted_zone_name + "."}
         response = self.mmsession.get(
             self.apiurl + '/DNSZones/', params=zoneparams, headers=self.headers, auth=self.credentials)
 
