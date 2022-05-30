@@ -131,9 +131,10 @@ class MenAndMice:
                     response = self.mmsession.post(self.apiurl + '/' + zone['ref'] + '/DNSRecords',
                                             json=record, headers=self.headers, auth=self.credentials)
                     if response.ok:
-                        print(response.json())
+                        logger.info("DNS Record created in Zone " +
+                                    self.hosted_zone_name + "(" + zone['ref'] + ")")
                     else:
-                        print(response.json())
+                        logger.error(response.json())
                 
         else:
             logger.info("Record exists, skipping create.")
