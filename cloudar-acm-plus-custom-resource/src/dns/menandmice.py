@@ -58,7 +58,25 @@ class MenAndMice:
                                  " Requires HostedZoneName Parameter")
                                  
         self.get_credentials()
+        
+    def select_zone(self):
+        zones = []
+        zoneparams={'filter': 'name=' + self.hosted_zone_name}
+        response = self.mmsession.get(
+            self.apiurl + '/DNSZones/', params=zoneparams, headers=self.headers, auth=self.credentials)
 
+
+        
+        if response.ok:
+            for zone in response.json()['result']['dnsZones']:
+                if 'localhost.' in zone['name'] or 'in-addr.arpa' in zone['name']:
+                    pass
+                # Add Further Zone Filters here!
+                else:
+                    zones.append({'name': zone['name'], 'ref': zone['ref'],
+                                 'type': zone['type'], 'displayName': zone['displayName']})
+        
+        return zones
 
     def dns_record_exists(self,record_name,record_value):
         logger.info(
@@ -96,6 +114,26 @@ class MenAndMice:
                         logger.warn("Could not delete " + record['name'] + ' (' + record['ref'] + ')')
             else:
                 # Create new record
-                pass
+                zones = self.select_zone()
+
+                myrecord = record_name
+                mydomain = self.hosted_zone_name
+                myhostname = strip_domain(record_name, self.hosted_zone_name)
+
+                record = {
+                    "dnsRecord": {
+                        "name": myhostname,
+                        "type": "CNAME",
+                        "data": record_value
+                    }
+                }
+                for zone in zones:
+                    response = self.mmsession.post(self.apiurl + '/' + zone['ref'] + '/DNSRecords',
+                                            json=record, headers=self.headers, auth=self.credentials)
+                    if response.ok:
+                        print(response.json())
+                    else:
+                        print(response.json())
+                
         else:
             logger.info("Record exists, skipping create.")
