@@ -4,3 +4,9 @@ def get_resource_property(event, resource_property):
         return resource_properties[resource_property]
     else:
         return None
+        
+
+def strip_domain(fqdn, domain):
+    if fqdn.endswith("." + domain):
+        return fqdn[:-(len("." + domain))]
+    return None
