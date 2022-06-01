@@ -37,15 +37,7 @@ to the S3 bucket you want to use with your custom resource in a cloudformation t
 
 ## Implementation notes
 
-See cfn.yaml as an example.
-
-IMPORTANT:  
-For the delete and cleanup functionality it is required to set the following output in your cloudformation.
-
-`Outputs:`  
-&nbsp;&nbsp;  `NameCustomResource:`  
-&nbsp;&nbsp;&nbsp;&nbsp;    `Description: The arn of the certificate created by NameCustomResource `  
-&nbsp;&nbsp;&nbsp;&nbsp;    `Value: !GetAtt NameCustomResource.certificate_arn`  
+See cfn.yaml as an example. 
 
 Parameters for Type: Custom::CreateCertificates :
 - DomainName: (REQUIRED type:String) The domain name for the acm certificate.
