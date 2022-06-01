@@ -22,7 +22,11 @@ class acm_certificate:
         self.certificate_region = get_resource_property(
             event, 'CertificateRegion')
         self.certificate_tags = get_resource_property(event, 'CertificateTags')
+        self.keep_dns_record = None
+        keep_dns_record = get_resource_property(event, 'KeepDNSRecord')        
         self.dns_service = None
+        if keep_dns_record and keep_dns_record == "yes":
+            self.keep_dns_record = True
         self.idem_potency_token = get_resource_property(event,
                                                         'IdempotencyToken')
         self.client = boto3.client('acm', region_name=self.certificate_region)
@@ -156,6 +160,9 @@ class acm_certificate:
         logger.info("Certificate validated.")
 
     def delete_records(self):
+        if self.keep_dns_record:
+            logger.info("keep_dns_record flag set. Not deleting dns records")
+            return
         response = self.client.describe_certificate(
             CertificateArn=self.certificate_arn)
         crt_data = response['Certificate']
@@ -208,7 +215,7 @@ def get_certificate_arn_from_cfn_stack(event, context, certificate_region):
         resource_id = event['LogicalResourceId']
         stack_id = event['StackId']
 
-        client = boto3.client('cloudformation', region_name=certificate_region)
+        client = boto3.client('cloudformation')
         response = client.describe_stack_resources(
             StackName=stack_id,
             LogicalResourceId=resource_id

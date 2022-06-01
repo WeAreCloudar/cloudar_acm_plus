@@ -51,6 +51,7 @@ Parameters for Type: Custom::CreateCertificates :
 - IdempotencyToken: (REQUIRED type:string pattern: \w+) The idempotency token for the create call of the acm certificate
   doc: https://docs.aws.amazon.com/acm/latest/APIReference/API_RequestCertificate.html#ACM-RequestCertificate-request-IdempotencyToken
 - CertificateTags: (OPTIONAL type:list) The tags for the acm certificate
+- KeepDNSRecord (OPTIONAL type:String) If value is set to "yes", the Validation records will not be deleted.
 
 Outputs for Type: Custom::CreateCertificates :
 - certificate_arn: The arn of the acm certificate created by the custom resource. (!GetAtt NameCustomResource.certificate_arn)
