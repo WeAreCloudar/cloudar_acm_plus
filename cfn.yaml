@@ -2,15 +2,35 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: >
     This template deploys a custom resource and acm certificate.
 Parameters:
-    HostedZoneId:
-        Description: The hostedzone id for the env domain
-        Type: String
-    DomainName:
-        Description: the domainname for the env
-        Type: String
-    ArtifactBucket:
-        Description: the artifact bucket
-        Type: String
+
+  DomainName:
+    Description: the domainname for the env
+    Type: String
+  ArtifactBucket:
+    Description: the artifact bucket
+    Type: String
+    
+
+  DnsService:
+    Description: "Route53, MenAndMice"
+    Type: String
+    AllowedValues:
+      - Route53
+      - MenAndMice
+      
+  # Only needed if DnsService is Route53    
+  HostedZoneId:
+    Description: The hostedzone id for the env domain
+    Type: String
+    Default: ""    
+  
+  # Only needed if DnsService is not Route53
+  HostedZoneName:
+    Type: String
+    Default: ""
+  DnsApiCredentialLocation:
+    Type: String
+    Default: "/menandmice/"
 
 Resources:
 
@@ -30,6 +50,14 @@ Resources:
       Code:
         S3Bucket: !Sub ${ArtifactBucket}
         S3Key: "cloudar-acm-plus-custom-resource.zip"
+      # VPC Config is only needed if dnS Service is not Route53
+      VpcConfig:
+        SecurityGroupIds:
+          - <YOUR Security Group>
+        SubnetIds:
+          - <YOUR SUBNET A>
+          - <YOUR SUBNET B>
+          - <YOUR SUBNET C>
 
   CreateCertificatesFunctionExecutionRole:
     Type: AWS::IAM::Role
@@ -45,22 +73,34 @@ Resources:
         - arn:aws:iam::aws:policy/AWSCertificateManagerFullAccess
         - arn:aws:iam::aws:policy/AmazonRoute53FullAccess
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
         - arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess
+      Policies:
+        - PolicyName: ssmAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action: 
+                  - ssm:GetParametersByPath
+                  - ssm:GetParameter
+                Effect: Allow
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/menandmice/
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/menandmice/*
 
   CreateCertificateCustomResource:
     Type: Custom::CreateCertificates
     Properties:
       ServiceToken: !GetAtt CreateCertificatesFunction.Arn
-      DomainName: !Sub ${DomainName}
-      AdditionalDomains:
-        - !Sub www.${DomainName}
-      ValidationDomain: !Sub ${DomainName}
-      HostedZoneId: !Sub ${HostedZoneId}
-      CertificateRegion: !Sub "${AWS::Region}"
+      DnsService: !Ref DnsService
+      DomainName: !Ref DomainName
+      ValidationDomain: !Ref DomainName
+      HostedZoneId: !Ref HostedZoneId
+      CertificateRegion: !Ref AWS::Region
       IdempotencyToken: CreateCertificateCustomResource
       CertificateTags:
         - Key: Name
-          Value: !Sub ${DomainName}
+          Value: !Ref DomainName
 
 Outputs:
   CreateCertificateCustomResource:
