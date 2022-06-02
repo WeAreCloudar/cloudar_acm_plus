@@ -50,14 +50,14 @@ Resources:
       Code:
         S3Bucket: !Sub ${ArtifactBucket}
         S3Key: "cloudar-acm-plus-custom-resource.zip"
-      # VPC Config is only needed if dnS Service is not Route53
-      VpcConfig:
-        SecurityGroupIds:
-          - <YOUR Security Group>
-        SubnetIds:
-          - <YOUR SUBNET A>
-          - <YOUR SUBNET B>
-          - <YOUR SUBNET C>
+      # VPC Config is only needed if you want to run this lambda in your VPC 
+      # VpcConfig:
+      #   SecurityGroupIds:
+      #     - <YOUR Security Group>
+      #   SubnetIds:
+      #     - <YOUR SUBNET A>
+      #     - <YOUR SUBNET B>
+      #     - <YOUR SUBNET C>
 
   CreateCertificatesFunctionExecutionRole:
     Type: AWS::IAM::Role
